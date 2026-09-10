@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TIMEBOY ADVANCE — 스톱워치</title>
+<style>
+  :root {
+    --page-bg: #14121c;
+    --shell-1: #7a68c9;
+    --shell-2: #5546a0;
+    --shell-3: #3d3178;
+    --shell-dark: #2a2158;
+    --btn-face: #46397f;
+    --btn-edge: #2b2260;
+    --bezel-1: #2c2c36;
+    --bezel-2: #191921;
+    --ink: #ece9f7;
+    --muted: #9a92c4;
+    --accent: #7fe08a;
+    --danger: #ff7b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 50% 0%, #241f38 0%, var(--page-bg) 60%);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 26px;
+    padding: 34px 18px 60px;
+  }
+
+  /* ---------- 본체 ---------- */
+  .console {
+    width: min(100%, 880px);
+    container-type: inline-size;
+    position: relative;
+    filter: drop-shadow(0 24px 40px rgba(0,0,0,.55));
+  }
+  .shoulders {
+    position: relative;
+    height: 4.6cqw;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 6cqw;
+  }
+  .shoulder {
+    width: 20cqw;
+    height: 100%;
+    background: linear-gradient(#8a78d6, #5b4bad);
+    border-radius: 5cqw 5cqw 0 0;
+    font-size: 1.9cqw;
+    font-weight: 700;
+    letter-spacing: .18em;
+    color: #cec4f5;
+    display: flex;
+    align-items: center;
+    box-shadow: inset 0 .3cqw 0 rgba(255,255,255,.25);
+  }
+  .shoulder.l { justify-content: flex-start; padding-left: 2.4cqw; }
+  .shoulder.r { justify-content: flex-end; padding-right: 2.4cqw; }
+
+  .body {
+    position: relative;
+    background: linear-gradient(160deg, var(--shell-1) 0%, var(--shell-2) 45%, var(--shell-3) 100%);
+    border-radius: 4cqw 4cqw 15cqw 15cqw / 4cqw 4cqw 9cqw 9cqw;
+    padding: 3.4cqw 4cqw 3cqw;
+    box-shadow:
+      inset 0 .5cqw 0 rgba(255,255,255,.28),
+      inset 0 -1.2cqw 2cqw rgba(0,0,0,.35);
+  }
+  /* 좌우 그립 */
+  .body::before, .body::after {
+    content: "";
+    position: absolute;
+    bottom: 8%;
+    width: 9cqw; height: 46%;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+    box-shadow: inset 0 0 1cqw rgba(0,0,0,.25);
+    pointer-events: none;
+  }
+  .body::before { left: 1.2cqw; }
+  .body::after  { right: 1.2cqw; }
+
+  .brandbar {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.6cqw;
+  }
+  .brandbar span {
+    font-size: 1.75cqw;
+    letter-spacing: .34em;
+    color: #d6cdf9;
+    text-shadow: 0 .1cqw 0 rgba(0,0,0,.3);
+  }
+  .brandbar b { color: #ffd257; font-weight: 800; }
+
+  .mid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2cqw;
+  }
+
+  /* ---------- 화면 ---------- */
+  .screen-col { flex: 0 0 auto; width: 54cqw; }
+  .bezel {
+    position: relative;
+    background: linear-gradient(150deg, var(--bezel-1), var(--bezel-2));
+    border-radius: 1.6cqw;
+    padding: 3.2cqw 3cqw 2.4cqw;
+    box-shadow: inset 0 0 0 .25cqw rgba(0,0,0,.6), 0 .6cqw 1.4cqw rgba(0,0,0,.4);
+  }
+  .led {
+    position: absolute;
+    top: 1.15cqw; left: 2.6cqw;
+    width: .9cqw; height: .9cqw;
+    border-radius: 50%;
+    background: #4c2a2a;
+    transition: background .15s, box-shadow .15s;
+  }
+  .led.on { background: #ff4d4d; box-shadow: 0 0 1.2cqw #ff4d4d; }
+  .led-label {
+    position: absolute;
+    top: .9cqw; left: 4.1cqw;
+    font-size: 1.05cqw;
+    letter-spacing: .12em;
+    color: #6f6a84;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 2;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: #5c94fc;
+    border-radius: .3cqw;
+  }
+  .glass {
+    position: absolute;
+    inset: 3.2cqw 3cqw 2.4cqw;
+    border-radius: .3cqw;
+    background: linear-gradient(115deg, rgba(255,255,255,.14) 0 18%, rgba(255,255,255,0) 42%);
+    pointer-events: none;
+  }
+  .sys-btns {
+    display: flex;
+    justify-content: center;
+    gap: 3cqw;
+    margin-top: 1.8cqw;
+  }
+  .sys {
+    background: linear-gradient(#514391, #322766);
+    color: #cfc6f2;
+    border: 0;
+    border-radius: 10cqw;
+    padding: .55cqw 2.2cqw;
+    font-size: 1.15cqw;
+    font-family: inherit;
+    letter-spacing: .16em;
+    cursor: pointer;
+    box-shadow: 0 .35cqw 0 #241c50;
+  }
+  .sys:active, .sys.pressed { transform: translateY(.3cqw); box-shadow: 0 .05cqw 0 #241c50; }
+  .sys .st { color: var(--accent); }
+
+  /* ---------- 십자키 ---------- */
+  .side { flex: 1 1 0; display: flex; justify-content: center; }
+  .dpad {
+    width: 16cqw; height: 16cqw;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+  }
+  .dpad button {
+    border: 0;
+    background: linear-gradient(#4c3f8b, #2c2360);
+    cursor: pointer;
+    padding: 0;
+    color: #9c92d6;
+    font-size: 1.5cqw;
+    line-height: 1;
+    box-shadow: inset 0 .25cqw 0 rgba(255,255,255,.14);
+  }
+  .dpad .up    { grid-area: 1 / 2; border-radius: 1.2cqw 1.2cqw 0 0; }
+  .dpad .left  { grid-area: 2 / 1; border-radius: 1.2cqw 0 0 1.2cqw; }
+  .dpad .ctr   { grid-area: 2 / 2; background: #241c50; box-shadow: inset 0 0 .8cqw rgba(0,0,0,.6); }
+  .dpad .right { grid-area: 2 / 3; border-radius: 0 1.2cqw 1.2cqw 0; }
+  .dpad .down  { grid-area: 3 / 2; border-radius: 0 0 1.2cqw 1.2cqw; }
+  .dpad button:active, .dpad button.pressed { background: #221a4c; color: var(--accent); }
+
+  /* ---------- A / B ---------- */
+  .ab {
+    width: 18cqw; height: 14cqw;
+    position: relative;
+    transform: rotate(-18deg);
+  }
+  .ab button {
+    position: absolute;
+    width: 7.4cqw; height: 7.4cqw;
+    border-radius: 50%;
+    border: 0;
+    background: radial-gradient(circle at 35% 30%, #6d5cbb, #3a2e7a 70%);
+    color: #efe8ff;
+    font-size: 2.6cqw;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 .6cqw 0 #241c50, inset 0 .2cqw .4cqw rgba(255,255,255,.25);
+  }
+  .ab .btn-a { right: 0; top: 0; }
+  .ab .btn-b { left: 0; bottom: 0; }
+  .ab button:active, .ab button.pressed {
+    transform: translateY(.5cqw);
+    box-shadow: 0 .1cqw 0 #241c50, inset 0 .2cqw .4cqw rgba(0,0,0,.3);
+  }
+  .ab-cap {
+    position: absolute;
+    right: -.4cqw; bottom: -1.2cqw;
+    font-size: 1.05cqw;
+    color: #cbc0f7;
+    letter-spacing: .1em;
+    transform: rotate(18deg);
+    white-space: nowrap;
+  }
+
+  .speaker {
+    margin: 2.2cqw 0 0 auto;
+    width: 12cqw; height: 4cqw;
+    transform: rotate(-14deg);
+    background-image: radial-gradient(circle, rgba(0,0,0,.35) 38%, transparent 40%);
+    background-size: 1.5cqw 1.5cqw;
+    opacity: .8;
+  }
+
+  /* ---------- 랩 기록 ---------- */
+  .laps-card {
+    width: min(100%, 520px);
+    background: #f4f0e4;
+    color: #2c2718;
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 12px 28px rgba(0,0,0,.4);
+    font-variant-numeric: tabular-nums;
+  }
+  .laps-card h2 {
+    margin: 0 0 10px;
+    font-size: 12px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: #7b7259;
+    display: flex;
+    justify-content: space-between;
+  }
+  .lap-head, .lap {
+    display: grid;
+    grid-template-columns: 3.4em 1fr 1fr;
+    gap: 8px;
+    padding: 7px 2px;
+    font-size: 14px;
+    border-top: 1px solid #ded8c5;
+  }
+  .lap-head { font-size: 11px; color: #8d8468; letter-spacing: .1em; border-top: 0; }
+  .lap span:nth-child(2), .lap span:nth-child(3) { text-align: right; }
+  .lap .idx { color: #8d8468; font-size: 12px; }
+  .lap.best  .delta { color: #1c7a35; font-weight: 700; }
+  .lap.worst .delta { color: #b23a2a; font-weight: 700; }
+  .lap .split { color: #8d8468; }
+  .empty { font-size: 13px; color: #8d8468; padding: 8px 2px 2px; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.9;
+    max-width: 560px;
+  }
+  kbd {
+    background: #241f38;
+    border: 1px solid #3b3358;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-family: inherit;
+    color: #ddd6f5;
+  }
+
+  @media (max-width: 560px) {
+    .laps-card { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="console">
+    <div class="shoulders">
+      <div class="shoulder l">L</div>
+      <div class="shoulder r">R</div>
+    </div>
+
+    <div class="body">
+      <div class="brandbar"><span>TIMEBOY <b>ADVANCE</b></span></div>
+
+      <div class="mid">
+        <div class="side">
+          <div class="dpad">
+            <button class="up"    data-act="lap" data-key="ArrowUp"    aria-label="랩 (위)">▲</button>
+            <button class="left"  data-act="lap" data-key="ArrowLeft"  aria-label="랩 (왼쪽)">◀</button>
+            <div class="ctr"></div>
+            <button class="right" data-act="lap" data-key="ArrowRight" aria-label="랩 (오른쪽)">▶</button>
+            <button class="down"  data-act="lap" data-key="ArrowDown"  aria-label="랩 (아래)">▼</button>
+          </div>
+        </div>
+
+        <div class="screen-col">
+          <div class="bezel">
+            <div class="led" id="led"></div>
+            <div class="led-label">TIME</div>
+            <canvas id="screen" width="240" height="160"></canvas>
+            <div class="glass"></div>
+          </div>
+          <div class="sys-btns">
+            <button class="sys" data-act="toggle" data-key="Enter">START</button>
+            <button class="sys" data-act="sound"  data-key="ShiftRight">SELECT <span class="st" id="sndState">♪ON</span></button>
+          </div>
+        </div>
+
+        <div class="side">
+          <div class="ab">
+            <button class="btn-a" data-act="toggle" data-key="KeyZ" aria-label="A - 시작/정지">A</button>
+            <button class="btn-b" data-act="reset"  data-key="KeyX" aria-label="B - 초기화">B</button>
+            <div class="ab-cap">A 시작·정지 / B 초기화</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="speaker"></div>
+    </div>
+  </div>
+
+  <div class="laps-card">
+    <h2><span>LAP RECORD</span><span id="lapCount">0</span></h2>
+    <div class="lap-head"><span>NO.</span><span>구간</span><span>누적</span></div>
+    <div id="laps"><div class="empty">십자키를 누르면 랩이 기록됩니다.</div></div>
+  </div>
+
+  <div class="hint">
+    <kbd>방향키</kbd> 랩 &nbsp;·&nbsp; <kbd>Z</kbd> A(시작/정지) &nbsp;·&nbsp; <kbd>X</kbd> B(초기화) &nbsp;·&nbsp; <kbd>Enter</kbd> START &nbsp;·&nbsp; <kbd>오른쪽 Shift</kbd> SELECT(사운드)
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================
+     스톱워치 코어
+     ========================================================= */
+  let running = false;
+  let elapsed = 0;      // 누적 시간(ms)
+  let startedAt = 0;    // 마지막 시작 시점 performance.now()
+  let laps = [];        // 랩의 누적 시간(ms)
+
+  const now = () => performance.now();
+  const total = () => running ? elapsed + (now() - startedAt) : elapsed;
+  const p2 = (n) => String(n).padStart(2, '0');
+
+  function fmt(ms) {
+    const cs = Math.floor(ms / 10) % 100;
+    const s = Math.floor(ms / 1000) % 60;
+    const m = Math.floor(ms / 60000) % 60;
+    const h = Math.floor(ms / 3600000);
+    const head = h > 0 ? h + ':' + p2(m) + ':' + p2(s) : p2(m) + ':' + p2(s);
+    return head + '.' + p2(cs);
+  }
+
+  const ledEl = document.getElementById('led');
+  const lapsEl = document.getElementById('laps');
+  const lapCountEl = document.getElementById('lapCount');
+  const btnA = document.querySelector('.btn-a');
+
+  function start() {
+    running = true;
+    startedAt = now();
+    ledEl.classList.add('on');
+    btnA.setAttribute('aria-label', 'A - 정지');
+    blip('start');
+  }
+
+  function stop() {
+    elapsed += now() - startedAt;
+    running = false;
+    ledEl.classList.remove('on');
+    btnA.setAttribute('aria-label', 'A - 계속');
+    blip('stop');
+  }
+
+  function toggle() { running ? stop() : start(); }
+
+  function reset() {
+    running = false;
+    elapsed = 0;
+    laps = [];
+    ledEl.classList.remove('on');
+    renderLaps();
+    blip('reset');
+  }
+
+  function addLap() {
+    if (!running) { blip('deny'); return; }
+    laps.push(total());
+    renderLaps();
+    blip('lap');
+  }
+
+  function renderLaps() {
+    lapCountEl.textContent = laps.length;
+    if (laps.length === 0) {
+      lapsEl.innerHTML = '<div class="empty">십자키를 누르면 랩이 기록됩니다.</div>';
+      return;
+    }
+    const deltas = laps.map((t, i) => t - (i === 0 ? 0 : laps[i - 1]));
+    let best = -1, worst = -1;
+    if (deltas.length > 1) {
+      best = deltas.indexOf(Math.min.apply(null, deltas));
+      worst = deltas.indexOf(Math.max.apply(null, deltas));
+      if (best === worst) { best = -1; worst = -1; }
+    }
+    const rows = laps.map((t, i) => {
+      const cls = i === best ? ' best' : (i === worst ? ' worst' : '');
+      return '<div class="lap' + cls + '">' +
+        '<span class="idx">' + p2(i + 1) + '</span>' +
+        '<span class="delta">' + fmt(deltas[i]) + '</span>' +
+        '<span class="split">' + fmt(t) + '</span>' +
+        '</div>';
+    });
+    lapsEl.innerHTML = rows.reverse().join('');
+  }
+
+  /* =========================================================
+     사운드 (WebAudio 스퀘어파 블립)
+     ========================================================= */
+  let audioCtx = null;
+  let soundOn = true;
+  const sndStateEl = document.getElementById('sndState');
+
+  function tone(freq, at, dur, vol) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, at);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(at);
+    osc.stop(at + dur);
+  }
+
+  function blip(kind) {
+    if (!soundOn) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const t = audioCtx.currentTime;
+      if (kind === 'lap')        { tone(988, t, .07, .09); tone(1319, t + .07, .13, .09); }
+      else if (kind === 'start') { tone(523, t, .06, .08); tone(784, t + .06, .10, .08); }
+      else if (kind === 'stop')  { tone(392, t, .10, .08); }
+      else if (kind === 'reset') { tone(330, t, .07, .08); tone(196, t + .07, .14, .08); }
+      else if (kind === 'deny')  { tone(147, t, .08, .06); }
+    } catch (e) { /* 오디오 미지원 환경은 무음 */ }
+  }
+
+  function toggleSound() {
+    soundOn = !soundOn;
+    sndStateEl.textContent = soundOn ? '♪ON' : '♪OFF';
+    if (soundOn) blip('start');
+  }
+
+  /* =========================================================
+     입력 (버튼 + 키보드)
+     ========================================================= */
+  const ACTIONS = { lap: addLap, toggle: toggle, reset: reset, sound: toggleSound };
+
+  document.querySelectorAll('[data-act]').forEach((el) => {
+    el.addEventListener('click', () => {
+      ACTIONS[el.dataset.act]();
+      el.blur();
+    });
+  });
+
+  const KEYMAP = {};
+  document.querySelectorAll('[data-key]').forEach((el) => { KEYMAP[el.dataset.key] = el; });
+  // 별칭: 방향키 4개 모두 랩, Space/KeyA 는 A버튼, KeyR 은 B버튼
+  const ALIAS = {
+    ArrowUp: '.up', ArrowDown: '.down', ArrowLeft: '.left', ArrowRight: '.right',
+    Space: '.btn-a', KeyA: '.btn-a', KeyZ: '.btn-a',
+    KeyX: '.btn-b', KeyB: '.btn-b', KeyR: '.btn-b',
+    Enter: '.sys[data-act="toggle"]', ShiftRight: '.sys[data-act="sound"]'
+  };
+  const held = Object.create(null);
+
+  document.addEventListener('keydown', (e) => {
+    const sel = ALIAS[e.code];
+    if (!sel) return;
+    e.preventDefault();
+    if (held[e.code]) return;      // 키 반복 무시
+    held[e.code] = true;
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.classList.add('pressed');
+    ACTIONS[el.dataset.act]();
+  });
+
+  document.addEventListener('keyup', (e) => {
+    if (!ALIAS[e.code]) return;
+    held[e.code] = false;
+    const el = document.querySelector(ALIAS[e.code]);
+    if (el) el.classList.remove('pressed');
+  });
+
+  /* =========================================================
+     화면 — 240x160 픽셀 렌더러
+     ========================================================= */
+  const cv = document.getElementById('screen');
+  const g = cv.getContext('2d');
+  const W = 240, H = 160;
+  const GROUND_TOP = 128;      // 지면 상단 y
+  const CHAR_X = 56;           // 캐릭터의 화면상 x
+  const SPEED = 92;            // px/sec 스크롤 속도
+  const LOOP = 1200;           // 월드 루프 길이(px) — 약 13초마다 반복
+
+  const C = {
+    sky: '#5c94fc',
+    hill: '#00a800', hillDark: '#007000', hillLite: '#80d010',
+    bush: '#00a800', bushDark: '#006800',
+    cloud: '#ffffff', cloudShade: '#d8e8ff',
+    ground: '#c84c0c', groundLite: '#e45c10', groundDark: '#7c2800',
+    brick: '#c84c0c', brickLite: '#e45c10',
+    qb: '#e39b00', qbLite: '#fbd000', qbDark: '#8a5a00',
+    pipe: '#00a800', pipeLite: '#58d854', pipeDark: '#006000',
+    white: '#ffffff', black: '#000000'
+  };
+
+  // 스테이지 배치 (월드 좌표)
+  const PIPES  = [{ x: 210, h: 2 }, { x: 560, h: 3 }, { x: 900, h: 2 }];
+  const HILLS  = [{ x: 20, big: 1 }, { x: 330, big: 0 }, { x: 660, big: 1 }, { x: 1010, big: 0 }];
+  const BUSHES = [{ x: 140, n: 3 }, { x: 470, n: 1 }, { x: 820, n: 2 }, { x: 1120, n: 1 }];
+  const CLOUDS = [{ x: 60, y: 22, n: 1 }, { x: 300, y: 14, n: 2 }, { x: 600, y: 26, n: 1 },
+                  { x: 880, y: 18, n: 2 }, { x: 1090, y: 32, n: 1 }];
+  const BLOCKS = [{ x: 390, y: 80, cells: 'bqb' }, { x: 700, y: 80, cells: 'q' },
+                  { x: 1000, y: 80, cells: 'bqbb' }];
+
+  /* ---------- 5x7 픽셀 폰트 ---------- */
+  const FONT = {
+    '0': '01110,10001,10011,10101,11001,10001,01110',
+    '1': '00100,01100,00100,00100,00100,00100,01110',
+    '2': '01110,10001,00001,00010,00100,01000,11111',
+    '3': '11111,00010,00100,00010,00001,10001,01110',
+    '4': '00010,00110,01010,10010,11111,00010,00010',
+    '5': '11111,10000,11110,00001,00001,10001,01110',
+    '6': '00110,01000,10000,11110,10001,10001,01110',
+    '7': '11111,00001,00010,00100,01000,01000,01000',
+    '8': '01110,10001,10001,01110,10001,10001,01110',
+    '9': '01110,10001,10001,01111,00001,00010,01100',
+    ':': '00000,00100,00100,00000,00100,00100,00000',
+    '.': '00000,00000,00000,00000,00000,01100,01100',
+    '-': '00000,00000,00000,11111,00000,00000,00000',
+    '?': '01110,10001,00001,00110,00100,00000,00100',
+    ' ': '00000,00000,00000,00000,00000,00000,00000',
+    'A': '01110,10001,10001,11111,10001,10001,10001',
+    'B': '11110,10001,10001,11110,10001,10001,11110',
+    'C': '01110,10001,10000,10000,10000,10001,01110',
+    'D': '11110,10001,10001,10001,10001,10001,11110',
+    'E': '11111,10000,10000,11110,10000,10000,11111',
+    'F': '11111,10000,10000,11110,10000,10000,10000',
+    'G': '01110,10001,10000,10111,10001,10001,01111',
+    'H': '10001,10001,10001,11111,10001,10001,10001',
+    'I': '11111,00100,00100,00100,00100,00100,11111',
+    'K': '10001,10010,10100,11000,10100,10010,10001',
+    'L': '10000,10000,10000,10000,10000,10000,11111',
+    'M': '10001,11011,10101,10101,10001,10001,10001',
+    'N': '10001,11001,10101,10011,10001,10001,10001',
+    'O': '01110,10001,10001,10001,10001,10001,01110',
+    'P': '11110,10001,10001,11110,10000,10000,10000',
+    'R': '11110,10001,10001,11110,10100,10010,10001',
+    'S': '01111,10000,10000,01110,00001,00001,11110',
+    'T': '11111,00100,00100,00100,00100,00100,00100',
+    'U': '10001,10001,10001,10001,10001,10001,01110',
+    'V': '10001,10001,10001,10001,10001,01010,00100',
+    'W': '10001,10001,10001,10101,10101,11011,10001',
+    'Y': '10001,10001,01010,00100,00100,00100,00100',
+    'Z': '11111,00001,00010,00100,01000,10000,11111'
+  };
+  const glyphCache = {};
+  function glyph(ch) {
+    if (!glyphCache[ch]) glyphCache[ch] = (FONT[ch] || FONT['?']).split(',');
+    return glyphCache[ch];
+  }
+  function textWidth(str, sc) { return str.length * 6 * sc - sc; }
+
+  function drawText(str, x, y, sc, color, shadow) {
+    str = String(str).toUpperCase();
+    if (shadow) drawTextRaw(str, x + sc, y + sc, sc, shadow);
+    drawTextRaw(str, x, y, sc, color);
+  }
+  function drawTextRaw(str, x, y, sc, color) {
+    g.fillStyle = color;
+    for (let i = 0; i < str.length; i++) {
+      const rows = glyph(str[i]);
+      const ox = x + i * 6 * sc;
+      for (let r = 0; r < 7; r++) {
+        const row = rows[r];
+        for (let c = 0; c < 5; c++) {
+          if (row[c] === '1') g.fillRect(ox + c * sc, y + r * sc, sc, sc);
+        }
+      }
+    }
+  }
+
+  /* ---------- 캐릭터 스프라이트 (14x16, 오리지널 픽셀아트) ---------- */
+  const SPR = { r: '#e83000', s: '#fcbc80', k: '#401a00', b: '#0070ec', y: '#f8d800', n: '#7a3b00' };
+  const BODY = [
+    '....rrrrrr....',
+    '..rrrrrrrrrr..',
+    '..kkksssssss..',
+    '.kkkssssssss..',
+    '.kkkskssskss..',
+    '.kkkssssssss..',
+    '..kkkkkkkkk...',
+    '...ssssssss...',
+    '...rrrrrrrr...',
+    '..rrrbbbbrrr..',
+    '.ssrrbybbrrss.',
+    '.ssrrbbbbrrss.',
+    '...bbbbbbbb...'
+  ];
+  const LEGS = [
+    ['...bbb..bbb...', '...bb....bb...', '..nnn....nnn..'],  // 달리기 1
+    ['..bbbb..bbb...', '.bbb.....bb...', 'nnn......nnn..'],  // 달리기 2
+    ['...bbb..bbbb..', '...bb.....bbb.', '..nnn......nnn'],  // 달리기 3
+    ['..bbb....bbb..', '.bbb......bbb.', 'nnn........nnn']   // 점프
+  ];
+
+  function drawRows(rows, x, y) {
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      for (let c = 0; c < row.length; c++) {
+        const col = SPR[row[c]];
+        if (col) { g.fillStyle = col; g.fillRect(x + c, y + r, 1, 1); }
+      }
+    }
+  }
+
+  function drawChar(x, y, legFrame) {
+    drawRows(BODY, x, y);
+    drawRows(LEGS[legFrame], x, y + 13);
+  }
+
+  /* ---------- 배경 요소 ---------- */
+  function drawCloud(x, y, n) {
+    for (let i = 0; i < n; i++) {
+      const bx = x + i * 26;
+      g.fillStyle = C.cloud;
+      g.fillRect(bx + 4, y, 16, 6);
+      g.fillRect(bx, y + 4, 24, 7);
+      g.fillRect(bx + 8, y - 4, 10, 6);
+      g.fillStyle = C.cloudShade;
+      g.fillRect(bx, y + 9, 24, 2);
+    }
+  }
+
+  function drawHill(x, big) {
+    const w = big ? 80 : 48;
+    const h = big ? 40 : 26;
+    const base = GROUND_TOP;
+    for (let i = 0; i < h; i++) {
+      // 계단식 삼각 언덕
+      const inset = Math.round((i / h) * (w / 2 - 4));
+      g.fillStyle = C.hill;
+      g.fillRect(x + inset, base - i - 1, w - inset * 2, 1);
+    }
+    // 밝은 왼면 + 점무늬
+    g.fillStyle = C.hillLite;
+    g.fillRect(x + Math.round(w / 2) - 3, base - h, 6, 3);
+    g.fillStyle = C.hillDark;
+    g.fillRect(x + Math.round(w * 0.32), base - 7, 3, 3);
+    g.fillRect(x + Math.round(w * 0.58), base - 7, 3, 3);
+    g.fillRect(x + Math.round(w * 0.45), base - 12, 3, 3);
+  }
+
+  function drawBush(x, n) {
+    const base = GROUND_TOP;
+    for (let i = 0; i < n; i++) {
+      const bx = x + i * 22;
+      g.fillStyle = C.bush;
+      g.fillRect(bx, base - 8, 26, 8);
+      g.fillRect(bx + 5, base - 13, 16, 6);
+      g.fillRect(bx + 9, base - 16, 8, 4);
+      g.fillStyle = C.bushDark;
+      g.fillRect(bx, base - 2, 26, 2);
+    }
+  }
+
+  function drawGround(scroll) {
+    g.fillStyle = C.ground;
+    g.fillRect(0, GROUND_TOP, W, H - GROUND_TOP);
+    g.fillStyle = C.groundLite;
+    g.fillRect(0, GROUND_TOP, W, 2);
+    // 벽돌 패턴 (스크롤에 맞춰 이동)
+    const off = Math.floor(scroll) % 16;
+    g.fillStyle = C.groundDark;
+    for (let row = 0; row < 2; row++) {
+      const ty = GROUND_TOP + row * 16;
+      g.fillRect(0, ty, W, 1);
+      const shift = row % 2 === 0 ? 0 : 8;
+      for (let x = -off + shift; x < W + 16; x += 16) {
+        g.fillRect(x, ty, 1, 16);
+      }
+    }
+  }
+
+  function drawBrick(x, y) {
+    g.fillStyle = C.brick;   g.fillRect(x, y, 16, 16);
+    g.fillStyle = C.brickLite; g.fillRect(x, y, 16, 2);
+    g.fillStyle = C.groundDark;
+    g.fillRect(x, y + 5, 16, 1);
+    g.fillRect(x, y + 11, 16, 1);
+    g.fillRect(x + 8, y + 2, 1, 3);
+    g.fillRect(x + 4, y + 6, 1, 5);
+    g.fillRect(x + 12, y + 6, 1, 5);
+    g.fillRect(x + 8, y + 12, 1, 4);
+  }
+
+  function drawQBlock(x, y, phase) {
+    g.fillStyle = C.qb;     g.fillRect(x, y, 16, 16);
+    g.fillStyle = phase ? C.qbLite : '#f0a800'; g.fillRect(x + 1, y + 1, 14, 14);
+    g.fillStyle = C.qbDark;
+    g.fillRect(x, y, 16, 1); g.fillRect(x, y + 15, 16, 1);
+    g.fillRect(x, y, 1, 16); g.fillRect(x + 15, y, 1, 16);
+    [[2, 2], [12, 2], [2, 12], [12, 12]].forEach((p) => g.fillRect(x + p[0], y + p[1], 2, 2));
+    drawTextRaw('?', x + 5, y + 4, 1, '#ffffff');
+    g.fillStyle = C.qbDark;
+    g.fillRect(x + 5, y + 11, 5, 1);
+  }
+
+  function drawPipe(x, hTiles) {
+    const h = hTiles * 16;
+    const topY = GROUND_TOP - h;
+    // 몸통
+    g.fillStyle = C.pipe;     g.fillRect(x + 3, topY + 14, 26, h - 14);
+    g.fillStyle = C.pipeLite; g.fillRect(x + 5, topY + 14, 5, h - 14);
+    g.fillStyle = C.pipeDark; g.fillRect(x + 25, topY + 14, 4, h - 14);
+    // 입구
+    g.fillStyle = C.pipe;     g.fillRect(x, topY, 32, 14);
+    g.fillStyle = C.pipeLite; g.fillRect(x + 2, topY + 2, 5, 10);
+    g.fillStyle = C.pipeDark;
+    g.fillRect(x, topY, 32, 2);
+    g.fillRect(x + 28, topY, 4, 14);
+    g.fillRect(x, topY + 12, 32, 2);
+  }
+
+  /* ---------- 점프 궤적 (경과 시간의 순수 함수) ---------- */
+  function charYOffset(scroll) {
+    const cx = scroll + CHAR_X;
+    let best = 0;
+    for (let i = 0; i < PIPES.length; i++) {
+      const p = PIPES[i];
+      const cands = [p.x, p.x + LOOP, p.x - LOOP];
+      for (let k = 0; k < cands.length; k++) {
+        // 상승은 짧게, 하강은 길게 — 파이프를 완전히 넘긴 뒤 착지
+        const s = cands[k] - 44, e = cands[k] + 32 + 34;
+        if (cx > s && cx < e) {
+          const t = (cx - s) / (e - s);
+          const peak = p.h * 16 + 18;
+          const yy = -peak * 4 * t * (1 - t);
+          if (yy < best) best = yy;
+        }
+      }
+    }
+    return best;
+  }
+
+  /* ---------- 래핑 헬퍼: 월드 오브젝트를 화면에 (필요하면 두 번) 그림 ---------- */
+  function wrapDraw(objX, scroll, span, fn) {
+    const base = objX - scroll;
+    for (let k = -1; k <= 1; k++) {
+      const sx = base + k * LOOP;
+      if (sx > -span && sx < W) fn(Math.round(sx));
+    }
+  }
+
+  /* ---------- 프레임 ---------- */
+  function draw() {
+    const ms = total();
+    const dist = (ms / 1000) * SPEED;
+    const scroll = dist % LOOP;
+
+    // 하늘
+    g.fillStyle = C.sky;
+    g.fillRect(0, 0, W, H);
+
+    // 구름 (패럴랙스 0.35)
+    const cs = (dist * 0.35) % LOOP;
+    CLOUDS.forEach((c) => wrapDraw(c.x, cs, 26 * c.n + 30, (sx) => drawCloud(sx, c.y, c.n)));
+
+    // 언덕 (패럴랙스 0.6)
+    const hs = (dist * 0.6) % LOOP;
+    HILLS.forEach((h) => wrapDraw(h.x, hs, h.big ? 84 : 52, (sx) => drawHill(sx, h.big)));
+
+    // 수풀
+    BUSHES.forEach((b) => wrapDraw(b.x, scroll, 22 * b.n + 8, (sx) => drawBush(sx, b.n)));
+
+    // 블록
+    const qphase = Math.floor(ms / 180) % 2 === 0;
+    BLOCKS.forEach((row) => {
+      wrapDraw(row.x, scroll, row.cells.length * 16 + 4, (sx) => {
+        for (let i = 0; i < row.cells.length; i++) {
+          const bx = sx + i * 16;
+          if (row.cells[i] === 'q') drawQBlock(bx, row.y, qphase);
+          else drawBrick(bx, row.y);
+        }
+      });
+    });
+
+    // 지면
+    drawGround(scroll);
+
+    // 파이프
+    PIPES.forEach((p) => wrapDraw(p.x, scroll, 36, (sx) => drawPipe(sx, p.h)));
+
+    // 캐릭터
+    const yOff = charYOffset(scroll);
+    const jumping = yOff < -1;
+    const legFrame = jumping ? 3 : (running || ms > 0 ? Math.floor(dist / 9) % 3 : 0);
+    drawChar(CHAR_X, Math.round(GROUND_TOP - 16 + yOff), legFrame);
+
+    // ----- HUD -----
+    const timeStr = fmt(ms);
+    drawText('TIME', 10, 8, 1, C.white, C.black);
+    drawText(timeStr, 10, 18, 2, C.white, C.black);
+
+    const lapLabel = 'LAP';
+    drawText(lapLabel, W - 10 - textWidth(lapLabel, 1), 8, 1, C.white, C.black);
+    const lapNum = p2(laps.length);
+    drawText(lapNum, W - 10 - textWidth(lapNum, 2), 18, 2, C.qbLite, C.black);
+
+    if (laps.length > 0) {
+      const last = laps.length === 1 ? laps[0] : laps[laps.length - 1] - laps[laps.length - 2];
+      const s = fmt(last);
+      drawText(s, W - 10 - textWidth(s, 1), 36, 1, C.white, C.black);
+    }
+
+    // 상태 메시지 (하늘 영역에서 깜빡임)
+    let msg = null;
+    if (!running && ms === 0) msg = 'PRESS A TO START';
+    else if (!running) msg = 'PAUSE - A RESUME  B RESET';
+    if (msg && (Math.floor(now() / 450) % 2 === 0)) {
+      const w = textWidth(msg, 1);
+      const x = Math.round((W - w) / 2);
+      g.fillStyle = 'rgba(0,0,0,.55)';
+      g.fillRect(x - 5, 56, w + 10, 15);
+      drawText(msg, x, 60, 1, C.white, null);
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  renderLaps();
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
