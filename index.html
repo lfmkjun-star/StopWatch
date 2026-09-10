@@ -392,8 +392,15 @@
   let laps = [];        // 랩의 누적 시간(ms)
   let jumpAt = -1;      // 점프를 시작한 경과 시간(ms). -1 이면 점프 없음
 
+  let coins = 0;        // 획득한 동전 수
+
   const JUMP_MS = 620;  // 십자키 점프 1회 지속(측정 시간 기준, ms)
   const JUMP_PEAK = 46; // 십자키 점프 최고 높이(px)
+  const DEBRIS_MS = 520;   // 벽돌 파편이 흩어지는 시간
+  const COIN_MS = 400;     // 동전이 튀어올라 사라질 때까지
+  const SCORE_MS = 420;    // '200' 점수가 떠오르다 사라질 때까지
+  const COIN_RISE = 30;    // 동전이 솟는 높이(px)
+  const BUMP_MS = 130;     // 맞은 블록이 튀는 시간
 
   const now = () => performance.now();
   const total = () => running ? elapsed + (now() - startedAt) : elapsed;
@@ -436,6 +443,8 @@
     elapsed = 0;
     laps = [];
     jumpAt = -1;
+    coins = 0;
+    resetStage();
     ledEl.classList.remove('on');
     renderLaps();
     blip('reset');
@@ -505,6 +514,8 @@
       else if (kind === 'start') { tone(523, t, .06, .08); tone(784, t + .06, .10, .08); }
       else if (kind === 'stop')  { tone(392, t, .10, .08); }
       else if (kind === 'reset') { tone(330, t, .07, .08); tone(196, t + .07, .14, .08); }
+      else if (kind === 'coin')  { tone(1319, t, .05, .08); tone(1760, t + .05, .16, .07); }
+      else if (kind === 'brick') { tone(262, t, .04, .09); tone(175, t + .04, .07, .08); tone(110, t + .11, .07, .06); }
       else if (kind === 'deny')  { tone(147, t, .08, .06); }
     } catch (e) { /* 오디오 미지원 환경은 무음 */ }
   }
@@ -576,6 +587,7 @@
     ground: '#c84c0c', groundLite: '#e45c10', groundDark: '#7c2800',
     brick: '#c84c0c', brickLite: '#e45c10',
     qb: '#e39b00', qbLite: '#fbd000', qbDark: '#8a5a00',
+    used: '#9c5000', usedLite: '#c88028', usedDark: '#5c2c00',
     pipe: '#00a800', pipeLite: '#58d854', pipeDark: '#006000',
     white: '#ffffff', black: '#000000'
   };
@@ -627,6 +639,7 @@
     'U': '10001,10001,10001,10001,10001,10001,01110',
     'V': '10001,10001,10001,10001,10001,01010,00100',
     'W': '10001,10001,10001,10101,10101,11011,10001',
+    'X': '10001,10001,01010,00100,01010,10001,10001',
     'Y': '10001,10001,01010,00100,00100,00100,00100',
     'Z': '11111,00001,00010,00100,01000,10000,11111'
   };
@@ -770,6 +783,64 @@
     g.fillRect(x + 8, y + 12, 1, 4);
   }
 
+  // ? 상자를 한 번 치면 남는 빈 상자
+  function drawUsedBlock(x, y) {
+    g.fillStyle = C.usedDark; g.fillRect(x, y, 16, 16);
+    g.fillStyle = C.used;     g.fillRect(x + 1, y + 1, 14, 14);
+    g.fillStyle = C.usedLite; g.fillRect(x + 1, y + 1, 14, 2); g.fillRect(x + 1, y + 1, 2, 14);
+    g.fillStyle = C.usedDark; g.fillRect(x + 2, y + 13, 13, 2); g.fillRect(x + 13, y + 2, 2, 13);
+  }
+
+  // 회전하는 동전 — 4프레임(정면 → 측면 → 정면)
+  function drawCoin(cx, cy, phase) {
+    const w = [8, 6, 3, 6][phase & 3];
+    const x = Math.round(cx - w / 2), y = Math.round(cy);
+    g.fillStyle = C.qbDark; g.fillRect(x, y, w, 8);
+    g.fillStyle = C.qbLite; g.fillRect(x, y + 1, w, 6);
+    if (w >= 6) {
+      g.fillStyle = C.qb;     g.fillRect(x + 1, y + 2, w - 2, 4);
+      g.fillStyle = C.qbDark; g.fillRect(x + (w >> 1) - 1, y + 2, 2, 4);
+    }
+  }
+
+  // 부서진 벽돌 조각 4개가 위로 튀어 오른 뒤 떨어진다
+  const DEBRIS = [[-1, -1.35], [1, -1.35], [-1, -0.8], [1, -0.8]];
+  function drawDebris(x, y, age) {
+    const t = age / DEBRIS_MS;
+    if (t < 0 || t > 1) return;
+    for (let i = 0; i < DEBRIS.length; i++) {
+      const dx = DEBRIS[i][0], vy = DEBRIS[i][1];
+      const px = Math.round(x + 5 + dx * 24 * t);
+      const py = Math.round(y + 5 + vy * 70 * t + 170 * t * t);
+      if (py > H) continue;
+      g.fillStyle = C.brick;    g.fillRect(px, py, 5, 5);
+      g.fillStyle = C.brickLite; g.fillRect(px, py, 5, 1);
+    }
+  }
+
+  // ? 상자에서 나온 동전이 튀어올랐다 사라지고, 그 자리에 점수가 떠오른다
+  function drawCoinPop(cx, blockTop, age) {
+    if (age < 0) return;
+    if (age < COIN_MS) {
+      const t = age / COIN_MS;
+      const cy = blockTop - 6 - COIN_RISE * 4 * t * (1 - t);
+      drawCoin(cx, cy, Math.floor(age / 55));
+      return;
+    }
+    const t = (age - COIN_MS) / SCORE_MS;
+    if (t >= 1) return;
+    const str = '200';
+    drawText(str, Math.round(cx - textWidth(str, 1) / 2), Math.round(blockTop - 12 - 16 * t),
+             1, C.white, C.black);
+  }
+
+  // 블록이 맞은 직후 살짝 위로 튀는 오프셋
+  function blockBump(age) {
+    const t = age / BUMP_MS;
+    if (t < 0 || t > 1) return 0;
+    return -4 * 4 * t * (1 - t);
+  }
+
   function drawQBlock(x, y, phase) {
     g.fillStyle = C.qb;     g.fillRect(x, y, 16, 16);
     g.fillStyle = phase ? C.qbLite : '#f0a800'; g.fillRect(x + 1, y + 1, 14, 14);
@@ -808,6 +879,51 @@
     return -JUMP_PEAK * 4 * t * (1 - t);
   }
 
+  /* ---------- 벽돌 / ? 상자 상호작용 ----------
+     맞은 블록을 "루프 회차:줄:칸" 으로 기억한다. 스테이지가 LOOP 마다 순환하므로
+     한 바퀴를 돌면 스테이지는 원래대로 복구된다(무한 진행에서 화면이 비어버리지 않게).
+     맞은 시각도 경과 측정 시간으로 저장해, 정지하면 파편과 동전도 그 자리에 멈춘다. */
+  const hitBlocks = new Map();
+  let prevHeadY = GROUND_TOP - 16;
+
+  function resetStage() {
+    hitBlocks.clear();
+    prevHeadY = GROUND_TOP - 16;
+  }
+
+  // 상승 중에 머리가 블록 밑면을 통과한 프레임에서 한 번만 성립한다.
+  function checkBlockHit(ms, dist, headY) {
+    if (headY >= prevHeadY) return;                // 하강·정지 중에는 판정 없음
+    const cl = dist + CHAR_X, cr = cl + 14;        // 캐릭터의 월드 x 범위
+    let key = null, ov = 0, ri = -1, ci = -1;
+
+    for (let r = 0; r < BLOCKS.length; r++) {
+      const row = BLOCKS[r];
+      const bottom = row.y + 16;
+      if (!(prevHeadY > bottom && headY <= bottom)) continue;
+      for (let i = 0; i < row.cells.length; i++) {
+        const cellX = row.x + i * 16;
+        // LOOP(1200) 가 블록보다 훨씬 커서 겹칠 수 있는 회차는 가장 가까운 하나뿐
+        const n = Math.round((cl - cellX) / LOOP);
+        const bx = cellX + n * LOOP;
+        const o = Math.min(cr, bx + 16) - Math.max(cl, bx);
+        const k = n + ':' + r + ':' + i;
+        if (o > ov && !hitBlocks.has(k)) { ov = o; key = k; ri = r; ci = i; }
+      }
+    }
+    if (!key) return;                              // 가장 많이 겹친 칸 하나만 때린다
+
+    const kind = BLOCKS[ri].cells[ci];
+    hitBlocks.set(key, { ms: ms, kind: kind });
+    if (kind === 'q') { coins++; blip('coin'); }
+    else { blip('brick'); }
+
+    if (hitBlocks.size > 64) {                     // 다시 그려질 일 없는 회차는 버린다
+      const minN = Math.floor(dist / LOOP) - 1;
+      hitBlocks.forEach((v, k) => { if (parseInt(k, 10) < minN) hitBlocks.delete(k); });
+    }
+  }
+
   function charYOffset(scroll) {
     const cx = scroll + CHAR_X;
     let best = 0;
@@ -833,7 +949,7 @@
     const base = objX - scroll;
     for (let k = -1; k <= 1; k++) {
       const sx = base + k * LOOP;
-      if (sx > -span && sx < W) fn(Math.round(sx));
+      if (sx > -span && sx < W) fn(Math.round(sx), k);
     }
   }
 
@@ -842,6 +958,13 @@
     const ms = total();
     const dist = (ms / 1000) * SPEED;
     const scroll = dist % LOOP;
+    const loopIdx = Math.floor(dist / LOOP);
+
+    // 점프 높이와 블록 충돌을 그리기 전에 확정해, 부서지는 프레임이 밀리지 않게 한다
+    const yOff = Math.min(charYOffset(scroll), jumpYOffset(ms));
+    const headY = GROUND_TOP - 16 + yOff;
+    checkBlockHit(ms, dist, headY);
+    prevHeadY = headY;
 
     // 하늘
     g.fillStyle = C.sky;
@@ -860,12 +983,21 @@
 
     // 블록
     const qphase = Math.floor(ms / 180) % 2 === 0;
-    BLOCKS.forEach((row) => {
-      wrapDraw(row.x, scroll, row.cells.length * 16 + 4, (sx) => {
+    BLOCKS.forEach((row, r) => {
+      wrapDraw(row.x, scroll, row.cells.length * 16 + 4, (sx, k) => {
+        const n = loopIdx + k;
         for (let i = 0; i < row.cells.length; i++) {
           const bx = sx + i * 16;
-          if (row.cells[i] === 'q') drawQBlock(bx, row.y, qphase);
-          else drawBrick(bx, row.y);
+          const hit = hitBlocks.get(n + ':' + r + ':' + i);
+          if (!hit) {
+            if (row.cells[i] === 'q') drawQBlock(bx, row.y, qphase);
+            else drawBrick(bx, row.y);
+          } else if (hit.kind === 'q') {
+            drawUsedBlock(bx, Math.round(row.y + blockBump(ms - hit.ms)));
+            drawCoinPop(bx + 8, row.y, ms - hit.ms);
+          } else {
+            drawDebris(bx, row.y, ms - hit.ms);
+          }
         }
       });
     });
@@ -877,15 +1009,18 @@
     PIPES.forEach((p) => wrapDraw(p.x, scroll, 36, (sx) => drawPipe(sx, p.h)));
 
     // 캐릭터
-    const yOff = Math.min(charYOffset(scroll), jumpYOffset(ms));
     const jumping = yOff < -1;
     const legFrame = jumping ? 3 : (running || ms > 0 ? Math.floor(dist / 9) % 3 : 0);
-    drawChar(CHAR_X, Math.round(GROUND_TOP - 16 + yOff), legFrame);
+    drawChar(CHAR_X, Math.round(headY), legFrame);
 
     // ----- HUD -----
     const timeStr = fmt(ms);
     drawText('TIME', 10, 8, 1, C.white, C.black);
     drawText(timeStr, 10, 18, 2, C.white, C.black);
+
+    drawCoin(14, 38, Math.floor(ms / 110) % 4);
+    const coinStr = 'X' + p2(coins);
+    drawText(coinStr, 22, 38, 1, C.qbLite, C.black);
 
     const lapLabel = 'LAP';
     drawText(lapLabel, W - 10 - textWidth(lapLabel, 1), 8, 1, C.white, C.black);
