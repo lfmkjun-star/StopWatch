@@ -171,30 +171,51 @@
   .sys:active, .sys.pressed { transform: translateY(.3cqw); box-shadow: 0 .05cqw 0 #241c50; }
   .sys .st { color: var(--accent); }
 
-  /* ---------- 십자키 ---------- */
+  /* ---------- 십자키 (십자 모양 단일 버튼) ---------- */
   .side { flex: 1 1 0; display: flex; justify-content: center; }
+  .dpad-wrap { display: flex; flex-direction: column; align-items: center; gap: 1.1cqw; }
   .dpad {
+    position: relative;
     width: 16cqw; height: 16cqw;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
-  }
-  .dpad button {
     border: 0;
-    background: linear-gradient(#4c3f8b, #2c2360);
-    cursor: pointer;
     padding: 0;
+    cursor: pointer;
+    font-family: inherit;
     color: #9c92d6;
+    background: linear-gradient(#4c3f8b, #2c2360);
+    box-shadow: inset 0 .25cqw 0 rgba(255,255,255,.14);
+    /* 네 방향 + 중앙이 하나의 히트 영역 — 중앙을 눌러도 눌린다 */
+    clip-path: polygon(
+      34% 0, 66% 0, 66% 34%, 100% 34%, 100% 66%, 66% 66%,
+      66% 100%, 34% 100%, 34% 66%, 0 66%, 0 34%, 34% 34%
+    );
+  }
+  .dpad .arw {
+    position: absolute;
     font-size: 1.5cqw;
     line-height: 1;
-    box-shadow: inset 0 .25cqw 0 rgba(255,255,255,.14);
+    pointer-events: none;
   }
-  .dpad .up    { grid-area: 1 / 2; border-radius: 1.2cqw 1.2cqw 0 0; }
-  .dpad .left  { grid-area: 2 / 1; border-radius: 1.2cqw 0 0 1.2cqw; }
-  .dpad .ctr   { grid-area: 2 / 2; background: #241c50; box-shadow: inset 0 0 .8cqw rgba(0,0,0,.6); }
-  .dpad .right { grid-area: 2 / 3; border-radius: 0 1.2cqw 1.2cqw 0; }
-  .dpad .down  { grid-area: 3 / 2; border-radius: 0 0 1.2cqw 1.2cqw; }
-  .dpad button:active, .dpad button.pressed { background: #221a4c; color: var(--accent); }
+  .dpad .u { top: 1.1cqw;  left: 50%; transform: translateX(-50%); }
+  .dpad .d { bottom: 1.1cqw; left: 50%; transform: translateX(-50%); }
+  .dpad .l { left: 1.1cqw;  top: 50%; transform: translateY(-50%); }
+  .dpad .r { right: 1.1cqw; top: 50%; transform: translateY(-50%); }
+  .dpad .ctr {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 4.6cqw; height: 4.6cqw;
+    margin: -2.3cqw 0 0 -2.3cqw;
+    border-radius: 50%;
+    background: #241c50;
+    box-shadow: inset 0 0 .8cqw rgba(0,0,0,.6);
+    pointer-events: none;
+  }
+  .dpad:active, .dpad.pressed { background: #221a4c; color: var(--accent); }
+  .dpad-cap {
+    font-size: 1.05cqw;
+    color: #cbc0f7;
+    letter-spacing: .1em;
+  }
 
   /* ---------- A / B ---------- */
   .ab {
@@ -310,12 +331,15 @@
 
       <div class="mid">
         <div class="side">
-          <div class="dpad">
-            <button class="up"    data-act="lap" data-key="ArrowUp"    aria-label="랩 (위)">▲</button>
-            <button class="left"  data-act="lap" data-key="ArrowLeft"  aria-label="랩 (왼쪽)">◀</button>
-            <div class="ctr"></div>
-            <button class="right" data-act="lap" data-key="ArrowRight" aria-label="랩 (오른쪽)">▶</button>
-            <button class="down"  data-act="lap" data-key="ArrowDown"  aria-label="랩 (아래)">▼</button>
+          <div class="dpad-wrap">
+            <button class="dpad" data-act="jump" data-key="ArrowUp" aria-label="십자키 - 점프 및 랩 기록">
+              <span class="arw u">▲</span>
+              <span class="arw l">◀</span>
+              <span class="arw r">▶</span>
+              <span class="arw d">▼</span>
+              <span class="ctr"></span>
+            </button>
+            <div class="dpad-cap">점프 · 랩</div>
           </div>
         </div>
 
@@ -348,11 +372,11 @@
   <div class="laps-card">
     <h2><span>LAP RECORD</span><span id="lapCount">0</span></h2>
     <div class="lap-head"><span>NO.</span><span>구간</span><span>누적</span></div>
-    <div id="laps"><div class="empty">십자키를 누르면 랩이 기록됩니다.</div></div>
+    <div id="laps"><div class="empty">십자키를 누르면 점프하며 랩이 기록됩니다.</div></div>
   </div>
 
   <div class="hint">
-    <kbd>방향키</kbd> 랩 &nbsp;·&nbsp; <kbd>Z</kbd> A(시작/정지) &nbsp;·&nbsp; <kbd>X</kbd> B(초기화) &nbsp;·&nbsp; <kbd>Enter</kbd> START &nbsp;·&nbsp; <kbd>오른쪽 Shift</kbd> SELECT(사운드)
+    <kbd>방향키</kbd> 점프·랩 &nbsp;·&nbsp; <kbd>Z</kbd> A(시작/정지) &nbsp;·&nbsp; <kbd>X</kbd> B(초기화) &nbsp;·&nbsp; <kbd>Enter</kbd> START &nbsp;·&nbsp; <kbd>오른쪽 Shift</kbd> SELECT(사운드)
   </div>
 
 <script>
@@ -366,6 +390,10 @@
   let elapsed = 0;      // 누적 시간(ms)
   let startedAt = 0;    // 마지막 시작 시점 performance.now()
   let laps = [];        // 랩의 누적 시간(ms)
+  let jumpAt = -1;      // 점프를 시작한 경과 시간(ms). -1 이면 점프 없음
+
+  const JUMP_MS = 620;  // 십자키 점프 1회 지속(측정 시간 기준, ms)
+  const JUMP_PEAK = 46; // 십자키 점프 최고 높이(px)
 
   const now = () => performance.now();
   const total = () => running ? elapsed + (now() - startedAt) : elapsed;
@@ -407,14 +435,19 @@
     running = false;
     elapsed = 0;
     laps = [];
+    jumpAt = -1;
     ledEl.classList.remove('on');
     renderLaps();
     blip('reset');
   }
 
-  function addLap() {
+  // 십자키: 캐릭터를 점프시키고 같은 시점을 랩으로 기록한다.
+  // 정지 상태에서는 장면도 멈춰 있으므로 점프·랩 모두 거부한다.
+  function jumpAndLap() {
     if (!running) { blip('deny'); return; }
-    laps.push(total());
+    const t = total();
+    if (jumpAt < 0 || t - jumpAt >= JUMP_MS) jumpAt = t;   // 공중에서는 재점프 없음
+    laps.push(t);
     renderLaps();
     blip('lap');
   }
@@ -422,7 +455,7 @@
   function renderLaps() {
     lapCountEl.textContent = laps.length;
     if (laps.length === 0) {
-      lapsEl.innerHTML = '<div class="empty">십자키를 누르면 랩이 기록됩니다.</div>';
+      lapsEl.innerHTML = '<div class="empty">십자키를 누르면 점프하며 랩이 기록됩니다.</div>';
       return;
     }
     const deltas = laps.map((t, i) => t - (i === 0 ? 0 : laps[i - 1]));
@@ -485,7 +518,7 @@
   /* =========================================================
      입력 (버튼 + 키보드)
      ========================================================= */
-  const ACTIONS = { lap: addLap, toggle: toggle, reset: reset, sound: toggleSound };
+  const ACTIONS = { jump: jumpAndLap, toggle: toggle, reset: reset, sound: toggleSound };
 
   document.querySelectorAll('[data-act]').forEach((el) => {
     el.addEventListener('click', () => {
@@ -496,9 +529,9 @@
 
   const KEYMAP = {};
   document.querySelectorAll('[data-key]').forEach((el) => { KEYMAP[el.dataset.key] = el; });
-  // 별칭: 방향키 4개 모두 랩, Space/KeyA 는 A버튼, KeyR 은 B버튼
+  // 별칭: 방향키 4개 모두 십자키(점프), Space/KeyA 는 A버튼, KeyR 은 B버튼
   const ALIAS = {
-    ArrowUp: '.up', ArrowDown: '.down', ArrowLeft: '.left', ArrowRight: '.right',
+    ArrowUp: '.dpad', ArrowDown: '.dpad', ArrowLeft: '.dpad', ArrowRight: '.dpad',
     Space: '.btn-a', KeyA: '.btn-a', KeyZ: '.btn-a',
     KeyX: '.btn-b', KeyB: '.btn-b', KeyR: '.btn-b',
     Enter: '.sys[data-act="toggle"]', ShiftRight: '.sys[data-act="sound"]'
@@ -766,6 +799,15 @@
   }
 
   /* ---------- 점프 궤적 (경과 시간의 순수 함수) ---------- */
+  // 십자키로 시작한 점프. 벽시계가 아니라 경과 측정 시간의 함수이므로
+  // 정지하면 공중에서 그대로 멈추고, 계속하면 남은 궤적을 정확히 이어간다.
+  function jumpYOffset(ms) {
+    if (jumpAt < 0) return 0;
+    const t = (ms - jumpAt) / JUMP_MS;
+    if (t <= 0 || t >= 1) return 0;
+    return -JUMP_PEAK * 4 * t * (1 - t);
+  }
+
   function charYOffset(scroll) {
     const cx = scroll + CHAR_X;
     let best = 0;
@@ -835,7 +877,7 @@
     PIPES.forEach((p) => wrapDraw(p.x, scroll, 36, (sx) => drawPipe(sx, p.h)));
 
     // 캐릭터
-    const yOff = charYOffset(scroll);
+    const yOff = Math.min(charYOffset(scroll), jumpYOffset(ms));
     const jumping = yOff < -1;
     const legFrame = jumping ? 3 : (running || ms > 0 ? Math.floor(dist / 9) % 3 : 0);
     drawChar(CHAR_X, Math.round(GROUND_TOP - 16 + yOff), legFrame);
